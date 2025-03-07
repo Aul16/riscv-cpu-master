@@ -1,0 +1,23 @@
+[*]
+[*] GTKWave Analyzer v3.3.120 (w)1999-2024 BSI
+[*] Mon Jan 20 08:38:35 2025
+[*]
+[dumpfile] "/home/user/repo/riscv-proc/implem/.CEPcache/sim/trace.vcd"
+[dumpfile_mtime] "Mon Jan 20 08:36:19 2025"
+[dumpfile_size] 341997
+[savefile] "/home/user/repo/riscv-proc/implem/config/tb_PROC_complet.gtkw"
+[timestart] 2059000
+[size] 1097 1114
+[pos] -1 -1
+*-18.466900 3390000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_PROC_complet.
+[treeopen] tb_PROC_complet.C_PROC_IO.
+[treeopen] tb_PROC_complet.C_PROC_IO.PO.
+[sst_width] 269
+[signals_width] 173
+[sst_expanded] 1
+[sst_vpaned_height] 333
+@22
+tb_PROC_complet.C_PROC_IO.pout[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

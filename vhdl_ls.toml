@@ -1,0 +1,14 @@
+
+[libraries]
+project.files = [
+    "implem/vhd/**/*.vhd",
+]
+unisim.files = [
+    "$XILINX_VIVADO/data/vhdl/src/unisims/**/*.vhd",
+]
+xpm.files = [
+    "$XILINX_VIVADO/data/ip/xpm/xpm_VCOMP.vhd",
+]
+
+[lint]
+unnecessary_work_library = false
