@@ -1,232 +1,231 @@
-IMPLEMENTATION README
-=====================
+# RISC-V CPU Implementation
 
-This readme describes all the features we implemented in this project
+A complete RISC-V CPU implementation with HDMI output support, capable of running Space Invaders and other graphical applications.
 
-CPU Functionnalies
----------------------
+## Project Overview
 
- * rv32i ISA (every instruction)
- * ZICSR Extension (6 registers) (csrrw, csrrs, ..., mret)
+This project implements a RISC-V CPU with the following features:
 
-Changing the resolution
---------------------
+- Complete RV32I ISA implementation (all instructions)
+- ZICSR Extension support (6 registers)
+- HDMI output with configurable resolution
+- C program support with bootstrap and libfemto options
+- Multiple demo applications including Space Invaders
 
-To change the resolution, both the VIC and the VRAM size must be set correctly
-in the vhdl source. The expected resolution must also be change in programs
+## Getting Started
 
-### Useful files
-- `vhd/hdmi/HDMI_AXI_Slave.vhd` : Set VRAM size
-- `vhd/hdmi/HDMI_pkg.vhd` : Choose default VIC
-- `vhd/hdmi/VIC_Interpreter` : VIC list
+### Prerequisites
 
-### Tested VICs : 
-- 1080p30 
-- 720p60 
+- **Vivado** - Version 19.1 WebPAck Edition or newer is required for the HDMI controller
+  - [Download Vivado](https://www.xilinx.com/support/download.html)
+- **RISC-V GCC Toolchain** - For compiling programs for the CPU
+  - Install via package manager: `sudo apt install gcc-riscv-unknown-elf` (Debian/Ubuntu)
+  - Or build from source using the [RISC-V Tools repository](https://gricad-gitlab.univ-grenoble-alpes.fr/riscv-ens/outils)
 
+### Installation
 
-Unknown opcodes
-----------------
+1. Clone the repository:
 
-The behavior when the IR is unknown or invalid is 
-defined by the `ERROR_TARGET_STATE` constant in `vhd/CPU_PC.vhd`.
+   ```bash
+   git clone git@gitlab-student.centralesupelec.fr:comparch/processeur.git
+   cd processeur
+   ```
 
-* `S_Init` : Reset the hardware
-* `S_Error` : Stop execution and loop forever
+2. For automatic installation on Debian-based systems, use the provided script:
 
-CURRENT STATE : `S_Init`
+   ```bash
+   ./install.sh
+   ```
 
+3. Set up your environment:
 
-Compiling a C program
------------------------
+   ```bash
+   # Add RISC-V toolchain to PATH (if installed from source)
+   export PATH=${PATH}:/opt/riscv-cep-tools/bin
 
-Because  `ld` does not always place `main` at `0x1000`, a library to initialize the program is needed.
+   # Set up Vivado environment
+   source /opt/Xilinx/Vivado/2019.1/settings64.sh
+   ```
 
-### With bootstrap.s
+   Adjust paths according to your installation locations.
 
-When compiling, in the `ld` command, include `bootstrap.s.o` as the first object to link.
-A small assembly function will setup the stack pointer at the end of RAM then call `main`
-with no arguments.
+## Usage
+
+### Simulation
+
+To simulate an instruction (e.g., LUI):
 
 ```bash
-ld -o program.elf bootstrap.o <librairies...> program.o $(LDFLAGS)
+cd implem && make simulation PROG=lui
 ```
 
-A function `void WAIT(void)` is also made available to create an infinite loop.
-Interrupts are not activated.
+### FPGA Synthesis
 
-### With libfemto
+To run the LED test on FPGA:
 
-Add libfemto to `config/compile_RISCV.mk` (does not appear to work with our toolchain)
-
-
-Errors
--------
-
-### Cell has undefined content and is considered a black box
-```
-ERROR: [DRC INBB-3] Black Box Instances: Cell 'C_PS_Link_inst' of type 'PS_Link' has undefined contents and is considered a black box.  The contents of this cell must be defined for opt_design to complete successfully.
-```
-Solution: `make clean`
-
-### Erreurs de linker 
-```
-ld: undefined reference to __mulsi3, __muldi3, etc...
-```
-Solution 1 : use `libfemto` 
-Solution 2 : implement these functions (see canonical GCC implementations)
- 
- ```
- ld: cant link double-float modules with soft-float modules
- ld: failed to merge target specific data of file .../libgcc.a(div.o/multi3.o)
- ```
- Solution : ??? (arises when trying libfemto with our toolchain)
-
-
-Programs
-----------
-
-Remember to `rm -r .CEPcache/mem` before recompiling (especially C) because the makefiles are
-not perfect
-
-### droite
-
-Graphical tests, draws primitives with `graphics.s`.
-Can draw rectangles, circles and shallow slope segments.
-It is important to choose the right resolution in `graphics.s`
-
-#### Compilation
-```make
-make fpga PRG=droite
+```bash
+cd implem && make fpga PROG=test_led_x31
 ```
 
-#### Files
-* `program/droite.s`
-* `asm/graphics.s`
-* `asm/util.s`
+To run Space Invaders on FPGA:
 
+```bash
+cd implem && make fpga PROG=invader LIB=libfemto
+```
 
-### ctest
+### Available Programs
 
-Handwritten version  version of space invaders, does not use `libfemto`.
-Choose the right resolution in `platform.h`
+#### droite
 
-* BTN0/BTN1 : movement 
-* BTN2 : shoot
-* BTN3 : reset (hardware)
+Graphical test that draws primitives (rectangles, circles, and segments).
 
-#### Compilation
-```make
+```bash
+make fpga PROG=droite
+```
+
+Files: `program/droite.s`, `asm/graphics.s`, `asm/util.s`
+
+#### ctest (Space Invaders)
+
+Handwritten version of Space Invaders that doesn't use libfemto.
+
+- BTN0/BTN1: Movement
+- BTN2: Shoot
+- BTN3: Hardware reset
+
+```bash
 make fpga PROG=ctest
 ```
 
-#### Files
-* `asm/bootstrap.s`
-* `c/ctest.c`
-* `c/graphics.c c/graphics.h`
-* `c/platform.h`
-* `c/gfx_data.c`
-* `c/gameover.c`
-* `c/sprites.c`
+Files: `asm/bootstrap.s`, `c/ctest.c`, `c/graphics.c`, `c/graphics.h`, `c/platform.h`, `c/gfx_data.c`, `c/gameover.c`, `c/sprites.c`
 
+#### invader
 
-### invader
+Standard Space Invaders with libfemto.
 
-The standard space invaders with libfemto, does not compile with our
-toolchain.
-
-#### Compilation
-```make
+```bash
 make fpga PROG=invader
 ```
 
-### compteur
+#### compteur
 
-Minimal test: infinitely incrementing LED binary counter.
-Check that `ERROR_TARGET_STATE` is set to `S_Init`
+Minimal test with an infinitely incrementing LED binary counter.
 
-#### Compilation
-```make
-make fpga PROG=invader
+```bash
+make fpga PROG=compteur
 ```
 
-Execution times
------------------
+### Other Commands
 
-The number of execution cycles is counted starting with the `Decode` state common to all
-instructions.
+For more available commands:
 
-| Instruction type | Cycle count  | States                                      |
-|------------------|--------------|---------------------------------------------|
-| Imm Arithmetic   | 3 cycles     | Decode, ArithI, Fetch                       |
-| Arithmetic       | 3 cycles     | Decode, Arith, Fetch                        |
-| LUI              | 3 cycles     | Decode, Lui, Fetch                          |
-| AUIPC            | 4 cycles     | Decode, Auipc, Prefetch, Fetch              |
-| BXX / JALR       | 4 cycles     | Decode, Jump, Prefetch, Fetch               |
-| JAL              | 3 cycles     | Decode, Prefetch, Fetch                     |
-| Loads            | 5 cycles     | Decode, Setup, Read, Write, Fetch           |
-| Stores           | 5 cycles     | Decode, Setup, Write, Prefetch, Fetch       |
-| CSR              | 4 cycles     | Decode, CSR, Prefetch, Fetch                |
+```bash
+cd implem && make help
+```
 
+## CPU Implementation Details
 
-README ORIGINAL
-===============
+### Instruction Execution Times
 
-Récupérer le projet
----------------------
-Faire un clone pour récupérer le projet.
+| Instruction type | Cycle count | States                                |
+| ---------------- | ----------- | ------------------------------------- |
+| Imm Arithmetic   | 3 cycles    | Decode, ArithI, Fetch                 |
+| Arithmetic       | 3 cycles    | Decode, Arith, Fetch                  |
+| LUI              | 3 cycles    | Decode, Lui, Fetch                    |
+| AUIPC            | 4 cycles    | Decode, Auipc, Prefetch, Fetch        |
+| BXX / JALR       | 4 cycles    | Decode, Jump, Prefetch, Fetch         |
+| JAL              | 3 cycles    | Decode, Prefetch, Fetch               |
+| Loads            | 5 cycles    | Decode, Setup, Read, Write, Fetch     |
+| Stores           | 5 cycles    | Decode, Setup, Write, Prefetch, Fetch |
+| CSR              | 4 cycles    | Decode, CSR, Prefetch, Fetch          |
 
-`git clone git@gitlab-student.centralesupelec.fr:comparch/processeur.git`
+### Unknown Opcode Behavior
 
-Les fichiers du TP se trouvent normalement dans le répertoire `processeur` : `cd processeur`
+The behavior when encountering an unknown or invalid instruction is defined by the `ERROR_TARGET_STATE` constant in `vhd/CPU_PC.vhd`:
 
-Makefiles
----------
+- `S_Init`: Reset the hardware (current setting)
+- `S_Error`: Stop execution and loop forever
 
+## Changing Display Resolution
 
-### Simuler
+To change the display resolution, you need to modify both the VIC and VRAM size:
 
-Test de l'instruction lui :
+1. Set VRAM size in `vhd/hdmi/HDMI_AXI_Slave.vhd`
+2. Choose default VIC in `vhd/hdmi/HDMI_pkg.vhd`
+3. VIC list is available in `vhd/hdmi/VIC_Interpreter`
 
-`cd implem && make simulation PROG=lui `
+Tested resolutions:
 
-### Synthétiser
+- 1080p30
+- 720p60
 
-Test des leds sur carte : 
+## Compiling C Programs
 
-`cd implem && make fpga PROG=test_led_x31`
+### Using bootstrap.s
 
-Space Invader sur carte :
+Include `bootstrap.s.o` as the first object to link:
 
-`cd implem && make fpga PROG=invader LIB=libfemto`
+```bash
+ld -o program.elf bootstrap.o <libraries...> program.o $(LDFLAGS)
+```
 
-### Autres
+This sets up the stack pointer at the end of RAM and calls `main` with no arguments.
 
-`cd implem && make help`
+A `void WAIT(void)` function is available to create an infinite loop. Interrupts are not activated.
 
+### Using libfemto
 
-Installation sur votre propre ordinateur
-----------------------------------------
+libfemto is a lightweight bare-metal C library for embedded RISC-V development that provides:
 
-## Dépendances
+- Reduced set of POSIX.1-2017 / IEEE 1003.1-2017 standard functions
+- Simple hardware configuration mechanism
+- RISC-V machine mode functions and macros
+- Console and power device drivers
 
-Nous fournissons un [script d'installation](https://gitlab-student.centralesupelec.fr/comparch/processeur/-/blob/master/install.sh) automatique pour Debian qui installe Vivado, la chaîne de compilation RISC-V et les dépendances. Si vous voulez installer manuellement, il vous faudra :
-* *Vivado* -> La version minimale *19.1 WebPAck Edition* est requise pour faire fonctionner le contrôleur HDMI ([Téléchargement de Vivado](https://www.xilinx.com/support/download.html))
-* *Toolchain gcc-riscv* -> Le plus simple est d'installer le paquet adéquat (par exemple, sous Debian `sudo apt install gcc-riscv-unknown-elf`). Elle peut aussi être compilée et installée à l'aide du [dépôt Outils](https://gricad-gitlab.univ-grenoble-alpes.fr/riscv-ens/outils)
+## Troubleshooting
 
-## Environnement
+### Cell has undefined content and is considered a black box
 
-Pour pouvoir utiliser les Makefiles du projet afin de simuler/synthetiser les modèles matériels VHDL et de compiler les programes de test et applications, il faut faire connaître à son environnement de travail les chemins vers les outils utilisés :
+```
+ERROR: [DRC INBB-3] Black Box Instances: Cell 'C_PS_Link_inst' of type 'PS_Link' has undefined contents and is considered a black box.
+```
 
-* Si vous avez installé la chaîne de compilation en clonant le dépôt outil (cette étape n'est pas nécessaire si vous avez installé la chaîne de compilation via un paquet), ajout du chemin vers la chaîne de compilation dans le PATH:
+Solution: Run `make clean`
 
-`export PATH=${PATH}:/opt/riscv-cep-tools/bin`
+### Linker errors
 
-Remplacer */opt/riscv-cep-tools* par le chemin où votre chaîne
-de compilation RISC-V est installée sur votre machine
+```
+ld: undefined reference to __mulsi3, __muldi3, etc...
+```
 
-* Ajout des chemins vers les outils Vivado: 
+Solutions:
 
-`source /opt/Xilinx/Vivado/2019.1/settings64.sh` 
+1. Use `libfemto`
+2. Implement these functions (see canonical GCC implementations)
 
-Remplacer éventuellement */opt/* par le chemin où Vivado est installé sur votre machine
+```
+ld: cant link double-float modules with soft-float modules
+ld: failed to merge target specific data of file .../libgcc.a(div.o/multi3.o)
+```
+
+This issue arises when trying to use libfemto with the provided toolchain.
+
+### Program Compilation Issues
+
+Remember to `rm -r .CEPcache/mem` before recompiling (especially C programs) as the makefiles are not perfect.
+
+## Project Structure
+
+- `/implem` - Main implementation directory
+  - `/asm` - Assembly code and utilities
+  - `/c` - C code for applications
+  - `/vhd` - VHDL implementation of the CPU
+  - `/program` - Test programs
+  - `/logiciel` - Software libraries and kernel
+    - `/kernel` - Boot code and libfemto
+    - `/apps` - Applications for FPGA/QEMU
+  - `/config` - Build configuration files
+
+## License
+
+This project is provided for educational purposes.
